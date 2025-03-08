@@ -231,7 +231,10 @@ export function useUsers() {
       try {
         setIsLoading(true);
 
-        const { data, error } = await supabase.from("users").select("*");
+        const { data, error } = await supabase
+          .from("users")
+          .select("*")
+          .order("created_at", { ascending: false });
 
         if (error) throw error;
         setUsers(data);
@@ -247,7 +250,39 @@ export function useUsers() {
 
     fetchUsers();
   }, []);
-  console.log(users);
+  return { users, isLoading, error };
+}
+
+export function useAllUsers() {
+  const [users, setUsers] = useState<User[] | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    async function fetchAllUsers() {
+      try {
+        setIsLoading(true);
+
+        const { data, error } = await supabase
+          .from("users")
+          .select("*")
+          .order("created_at", { ascending: false });
+
+        if (error) throw error;
+        setUsers(data);
+      } catch (err) {
+        console.error("Error fetching all users:", err);
+        setError(
+          err instanceof Error ? err : new Error("Failed to fetch users")
+        );
+      } finally {
+        setIsLoading(false);
+      }
+    }
+
+    fetchAllUsers();
+  }, []);
+
   return { users, isLoading, error };
 }
 

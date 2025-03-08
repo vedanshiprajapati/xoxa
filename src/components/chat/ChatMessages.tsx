@@ -1,7 +1,7 @@
 // /components/chat/ChatMessages.tsx
 "use client";
 import React, { useEffect, useRef } from "react";
-import { Check } from "lucide-react";
+import { Check, CheckCheck } from "lucide-react";
 import { Message } from "@/types";
 
 interface ChatMessagesProps {
@@ -26,46 +26,7 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
       aria-label="Chat messages"
     >
       {messages.map((msg) => (
-        <article
-          key={msg.id}
-          className={`flex ${
-            msg.sender_id === currentUserId ? "justify-end" : "justify-start"
-          }`}
-        >
-          <div
-            className={`max-w-xs ${
-              msg.sender_id === currentUserId
-                ? "bg-green-100 rounded-lg p-3"
-                : "bg-white rounded-lg p-3 shadow-sm"
-            }`}
-          >
-            {msg.sender_id !== currentUserId && (
-              <div className="font-medium text-sm text-gray-800 mb-1">
-                {msg.sender_name}
-              </div>
-            )}
-            <div className="text-sm break-words">{msg.content}</div>
-            <div className="flex justify-end items-center mt-1 text-xs text-gray-500 space-x-1">
-              <time dateTime={msg.created_at}>
-                {new Date(msg.created_at).toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </time>
-              {msg.sender_id === currentUserId && msg.is_read && (
-                <span className="text-green-500">
-                  <Check size={12} />
-                </span>
-              )}
-            </div>
-            {msg.sender_id === currentUserId && msg.sent_by && (
-              <div className="text-xs text-gray-500 flex items-center mt-1">
-                <Check size={10} className="text-green-500 mr-1" />
-                {msg.sent_by}
-              </div>
-            )}
-          </div>
-        </article>
+        <MessageBox msg={msg} currentUserId={currentUserId} key={msg.id} />
       ))}
       <div ref={messagesEndRef} />
     </section>
@@ -73,3 +34,52 @@ const ChatMessages: React.FC<ChatMessagesProps> = ({
 };
 
 export default ChatMessages;
+
+const MessageBox = ({
+  msg,
+  currentUserId,
+}: {
+  msg: Message;
+  currentUserId: string;
+}) => {
+  const isSentByCurrentUser = msg.sender_id === currentUserId;
+
+  return (
+    <article
+      className={`flex ${
+        isSentByCurrentUser ? "justify-end" : "justify-start"
+      } mb-2`}
+    >
+      <div
+        className={`relative max-w-xs p-3 text-sm break-words rounded-lg shadow-md ${
+          isSentByCurrentUser
+            ? "bg-green-200 text-gray-900 rounded-br-none"
+            : "bg-white text-gray-900 rounded-bl-none"
+        }`}
+      >
+        {!isSentByCurrentUser && (
+          <div className="text-xs font-semibold text-gray-700 mb-1">
+            {msg.sender_name}
+          </div>
+        )}
+
+        <div>{msg.content}</div>
+
+        <div className="flex justify-end items-center mt-1 text-xs text-gray-500 space-x-1">
+          <time dateTime={msg.created_at}>
+            {new Date(msg.created_at).toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+            })}
+          </time>
+
+          {isSentByCurrentUser && (
+            <span className={msg.is_read ? "text-blue-500" : "text-gray-400"}>
+              {msg.is_read ? <CheckCheck size={14} /> : <Check size={14} />}
+            </span>
+          )}
+        </div>
+      </div>
+    </article>
+  );
+};

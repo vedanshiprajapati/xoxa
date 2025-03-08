@@ -1,8 +1,11 @@
-import React from "react";
-import { Search, Filter, ListFilter } from "lucide-react";
+"use client";
+import React, { useState } from "react";
+import { Search, Filter, ListFilter, MessageCirclePlus } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
 import { useChat } from "@/contexts/chatContext";
+import { NewChatModal } from "./NewChatModal";
+import { Button } from "../ui/Button";
 
 export function ChatListHeader() {
   const { searchTerm, setSearchTerm, filteredView, setFilteredView } =
@@ -52,7 +55,9 @@ export function ChatListHeader() {
 export function ChatList() {
   const { chats, activeChat, setActiveChat, searchTerm, filteredView } =
     useChat();
+  const [isModalOpen, setIsModalOpen] = useState(false);
   console.log(chats);
+  console.log(activeChat, "active chat");
   // Filter chats based on search term and filtered view
   const filteredChats =
     chats &&
@@ -96,83 +101,131 @@ export function ChatList() {
       });
     }
   };
-
+  if (!chats) {
+    return (
+      <div>
+        {[1, 2, 3].map((item) => (
+          <ShimmerChatItem key={item} />
+        ))}
+      </div>
+    );
+  }
   return (
-    <div className="flex-1 overflow-y-auto divide-y divide-gray-100">
-      {filteredChats &&
-        filteredChats.map((chat) => (
-          <div
-            key={chat.id}
-            className={`group relative flex items-center p-4 hover:bg-gray-50 cursor-pointer transition-colors ${
-              activeChat?.id === chat.id ? "bg-blue-50 hover:bg-blue-100" : ""
-            }`}
-            onClick={() => setActiveChat(chat)}
-          >
-            <div className="relative flex-shrink-0">
-              <Avatar
-                src={chat.avatar_url}
-                name={chat.name || "Unknown Chat"}
-                size="lg"
-                className="ring-2 ring-white"
-              />
-              {chat.unreadCount! > 0 && (
-                <span className="absolute -top-1 -right-1 bg-red-500 text-xs text-white rounded-full px-2 py-1 shadow-sm">
-                  {chat.unreadCount}
-                </span>
-              )}
-            </div>
-
-            <div className="ml-4 min-w-0 flex-1">
-              <div className="flex items-center justify-between gap-2">
-                <h2 className="text-sm font-semibold text-gray-900 truncate">
-                  {chat.name || "Untitled Chat"}
-                </h2>
-                {chat.lastMessage?.created_at && (
-                  <time
-                    className="flex-shrink-0 text-xs text-gray-500"
-                    dateTime={chat.lastMessage.created_at}
-                  >
-                    {formatTime(chat.lastMessage.created_at)}
-                  </time>
-                )}
-              </div>
-
-              <div className="mt-1 flex items-center justify-between gap-2">
-                <p className="text-sm text-gray-600 truncate">
-                  {chat.lastMessage?.content || (
-                    <span className="text-gray-400 italic">
-                      No messages yet
-                    </span>
-                  )}
-                </p>
-
-                {chat.phone && (
-                  <span className="flex-shrink-0 text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
-                    {chat.phone}
+    <div>
+      <div className="flex-1 overflow-y-auto divide-y divide-gray-100">
+        {filteredChats &&
+          filteredChats.map((chat) => (
+            <div
+              key={chat.id}
+              className={`group relative flex items-center p-4 hover:bg-gray-50 cursor-pointer transition-colors ${
+                activeChat?.id === chat.id ? "bg-blue-50 hover:bg-blue-100" : ""
+              }`}
+              onClick={() => setActiveChat(chat)}
+            >
+              <div className="relative flex-shrink-0">
+                <Avatar
+                  src={chat.avatar_url}
+                  name={chat.name || "Unknown Chat"}
+                  size="lg"
+                />
+                {chat.unreadCount! > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-xs text-white rounded-full px-2 py-1 shadow-sm">
+                    {chat.unreadCount}
                   </span>
                 )}
               </div>
 
-              {chat.tags && chat.tags.length > 0 && (
-                <div className="mt-2 flex flex-wrap gap-2">
-                  {chat.tags.map((tag, index) => (
-                    <Badge
-                      key={index}
-                      label={tag.name}
-                      className="text-xs px-2 py-0.5 rounded-full"
-                    />
-                  ))}
+              <div className="ml-4 min-w-0 flex-1">
+                <div className="flex items-center justify-between gap-2">
+                  <h2 className="text-sm font-semibold text-gray-900 truncate">
+                    {chat.name || "Untitled Chat"}
+                  </h2>
+                  {chat.lastMessage?.created_at && (
+                    <time
+                      className="flex-shrink-0 text-xs text-gray-500"
+                      dateTime={chat.lastMessage.created_at}
+                    >
+                      {formatTime(chat.lastMessage.created_at)}
+                    </time>
+                  )}
                 </div>
-              )}
-            </div>
-          </div>
-        ))}
 
-      {filteredChats?.length === 0 && (
-        <div className="p-8 text-center text-gray-500">
-          No chats found {searchTerm && `matching "${searchTerm}"`}
+                <div className="mt-1 flex items-center justify-between gap-2">
+                  <p className="text-sm text-gray-600 truncate">
+                    {chat.lastMessage?.content || (
+                      <span className="text-gray-400 italic">
+                        No messages yet
+                      </span>
+                    )}
+                  </p>
+
+                  {chat.phone && (
+                    <span className="flex-shrink-0 text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                      {chat.phone}
+                    </span>
+                  )}
+                </div>
+
+                {chat.tags && chat.tags.length > 0 && (
+                  <div className="mt-2 flex flex-wrap gap-2">
+                    {chat.tags.map((tag, index) => (
+                      <Badge
+                        key={index}
+                        label={tag.name}
+                        className="text-xs px-2 py-0.5 rounded-full"
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          ))}
+        <div className="absolute bottom-12 right-3/4">
+          <Button
+            variant="icon"
+            onClick={() => setIsModalOpen(true)}
+            className="mt-auto bg-emerald-500 p-3 rounded-full"
+            aria-label="Create new chat"
+          >
+            <MessageCirclePlus size={22} className="text-white" />
+          </Button>
         </div>
-      )}
+        {filteredChats?.length === 0 && (
+          <div className="p-8 text-center text-gray-500">
+            No chats found {searchTerm && `matching "${searchTerm}"`}
+          </div>
+        )}
+      </div>
+      <NewChatModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+      />
     </div>
   );
 }
+
+const ShimmerChatItem = () => {
+  return (
+    <div className="group relative flex items-center p-4 bg-gray-100 animate-pulse rounded-md">
+      <div className="relative flex-shrink-0 w-12 h-12 bg-gray-300 rounded-full"></div>
+
+      <div className="ml-4 min-w-0 flex-1">
+        <div className="flex items-center justify-between gap-2">
+          <div className="h-4 bg-gray-300 rounded w-3/5"></div>
+          <div className="h-3 bg-gray-300 rounded w-1/5"></div>
+        </div>
+
+        <div className="mt-1 flex items-center justify-between gap-2">
+          <div className="h-3 bg-gray-300 rounded w-4/5"></div>
+          <div className="h-3 bg-gray-300 rounded w-1/5"></div>
+        </div>
+
+        <div className="mt-2 flex flex-wrap gap-2">
+          <div className="h-3 bg-gray-300 rounded w-12"></div>
+          <div className="h-3 bg-gray-300 rounded w-16"></div>
+          <div className="h-3 bg-gray-300 rounded w-10"></div>
+        </div>
+      </div>
+    </div>
+  );
+};

@@ -1,7 +1,9 @@
 "use client";
 import { useState, useEffect } from "react";
-import { useUsers, useTags, useCreateChat } from "@/lib/hooks";
+import { useChat } from "@/contexts/chatContext"; // Assuming your context is here
+import { useCreateChat, useAllUsers } from "@/lib/hooks";
 import { Button } from "@/components/ui/Button";
+import { User } from "@/types";
 
 export function NewChatModal({
   isOpen,
@@ -10,28 +12,96 @@ export function NewChatModal({
   isOpen: boolean;
   onClose: () => void;
 }) {
-  const [selectedParticipants, setParticipants] = useState<string[]>([]);
-  const [selectedTags, setTags] = useState<string[]>([]);
-  const [chatName, setChatName] = useState("");
-  const { users } = useUsers();
-  const { tags } = useTags();
+  // Get context and hooks
+  const { setActiveChat } = useChat();
+  const { users } = useAllUsers();
   const { createChat, isLoading } = useCreateChat();
+  // Chat type selection
+  const [isGroupChat, setIsGroupChat] = useState(false);
 
+  // Direct message state
+  const [recipientEmail, setRecipientEmail] = useState("");
+  const [emailError, setEmailError] = useState("");
+  const [foundRecipient, setFoundRecipient] = useState<User | null>(null);
+  // Group chat state
+  const [groupName, setGroupName] = useState("");
+  const [selectedParticipants, setSelectedParticipants] = useState<string[]>(
+    []
+  );
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+
+  // Reset state when modal closes
   useEffect(() => {
     if (!isOpen) {
-      setParticipants([]);
-      setTags([]);
-      setChatName("");
+      setIsGroupChat(false);
+      setRecipientEmail("");
+      setEmailError("");
+      setFoundRecipient(null);
+      setGroupName("");
+      setSelectedParticipants([]);
+      setSelectedTags([]);
     }
   }, [isOpen]);
 
+  // Validate email and find user
+  const handleEmailChange = (email: string) => {
+    setRecipientEmail(email);
+    setEmailError("");
+    setFoundRecipient(null);
+
+    if (!email) return;
+
+    const matchedUser = users?.find(
+      (user) => user.email.toLowerCase() === email.toLowerCase()
+    );
+    console.log(users);
+    if (matchedUser) {
+      setFoundRecipient(matchedUser);
+    } else if (email.includes("@")) {
+      setEmailError("No user found with this email");
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
     try {
-      await createChat(selectedParticipants, chatName, selectedTags);
+      let newChatData;
+
+      if (isGroupChat) {
+        // Create group chat
+        if (!groupName.trim()) {
+          return; // Prevent empty group name
+        }
+
+        newChatData = await createChat(
+          selectedParticipants,
+          groupName,
+          selectedTags
+        );
+      } else {
+        // Create direct message
+        if (!foundRecipient) {
+          setEmailError("Please enter a valid user email");
+          return;
+        }
+
+        // Create chat with just the recipient
+        newChatData = await createChat(
+          [foundRecipient.id],
+          foundRecipient.name,
+          []
+        );
+      }
+
+      // Set the newly created chat as active
+      if (newChatData) {
+        setActiveChat(newChatData);
+      }
+
       onClose();
     } catch (error) {
-      console.error("Error creating chat:", error);
+      alert("Error creating chat");
     }
   };
 
@@ -48,50 +118,86 @@ export function NewChatModal({
           &times;
         </button>
 
+        <div className="mb-4">
+          <div className="flex items-center space-x-4">
+            <label className="flex items-center">
+              <input
+                type="radio"
+                checked={!isGroupChat}
+                onChange={() => setIsGroupChat(false)}
+                className="mr-2"
+              />
+              Direct Message
+            </label>
+            <label className="flex items-center">
+              <input
+                type="radio"
+                checked={isGroupChat}
+                onChange={() => setIsGroupChat(true)}
+                className="mr-2"
+              />
+              Group Chat
+            </label>
+          </div>
+        </div>
+
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              Chat Name (optional)
-            </label>
-            <input
-              type="text"
-              value={chatName}
-              onChange={(e) => setChatName(e.target.value)}
-              className="w-full p-2 border rounded-md"
-            />
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium mb-1">
-              Add Participants
-            </label>
-            <div className="grid grid-cols-2 gap-2">
-              {users?.map((user) => (
-                <label
-                  key={user.id}
-                  className="flex items-center space-x-2 p-2 border rounded-md"
-                >
-                  <input
-                    type="checkbox"
-                    checked={selectedParticipants.includes(user.id)}
-                    onChange={(e) => {
-                      if (e.target.checked) {
-                        setParticipants([...selectedParticipants, user.id]);
-                      } else {
-                        setParticipants(
-                          selectedParticipants.filter((id) => id !== user.id)
-                        );
-                      }
-                    }}
-                  />
-                  <span>{user.name}</span>
+          {isGroupChat ? (
+            // Group Chat Form
+            <>
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  Group Name
                 </label>
-              ))}
-            </div>
-          </div>
+                <input
+                  type="text"
+                  required
+                  value={groupName}
+                  onChange={(e) => setGroupName(e.target.value)}
+                  className="w-full p-2 border rounded-md"
+                  placeholder="Enter group name..."
+                />
+              </div>
 
-          <div>
-            <label className="block text-sm font-medium mb-1">Add Tags</label>
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  Add Participants
+                </label>
+                <div className="max-h-48 overflow-y-auto border rounded-md p-2">
+                  {users?.map((user) => (
+                    <label
+                      key={user.id}
+                      className="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={selectedParticipants.includes(user.id)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setSelectedParticipants([
+                              ...selectedParticipants,
+                              user.id,
+                            ]);
+                          } else {
+                            setSelectedParticipants(
+                              selectedParticipants.filter(
+                                (id) => id !== user.id
+                              )
+                            );
+                          }
+                        }}
+                      />
+                      <span>{user.name}</span>
+                      <span className="text-xs text-gray-500">
+                        {user.email}
+                      </span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* <div>
+              <label className="block text-sm font-medium mb-1">Add Tags</label>
             <div className="flex flex-wrap gap-2">
               {tags?.map((tag) => (
                 <label
@@ -113,9 +219,50 @@ export function NewChatModal({
                 </label>
               ))}
             </div>
-          </div>
+              </div> */}
+            </>
+          ) : (
+            // Direct Message Form
+            <div>
+              <label className="block text-sm font-medium mb-1">
+                Recipient Email
+              </label>
+              <input
+                type="email"
+                required
+                value={recipientEmail}
+                onChange={(e) => handleEmailChange(e.target.value)}
+                className={`w-full p-2 border rounded-md ${
+                  emailError
+                    ? "border-red-500"
+                    : foundRecipient
+                    ? "border-green-500"
+                    : ""
+                }`}
+                placeholder="Enter recipient's email..."
+              />
 
-          <div className="flex justify-end space-x-2">
+              {emailError && (
+                <p className="text-red-500 text-sm mt-1">{emailError}</p>
+              )}
+
+              {foundRecipient && (
+                <div className="mt-2 p-2 bg-green-50 border border-green-200 rounded-md">
+                  <p className="text-sm">
+                    <span className="font-medium">{foundRecipient.name}</span>
+                    {foundRecipient.email !== foundRecipient.name && (
+                      <span className="text-gray-500">
+                        {" "}
+                        ({foundRecipient.email})
+                      </span>
+                    )}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
+
+          <div className="flex justify-end space-x-2 pt-2">
             <Button
               type="button"
               variant="secondary"
@@ -124,7 +271,10 @@ export function NewChatModal({
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={isLoading}>
+            <Button
+              type="submit"
+              disabled={isLoading || (!isGroupChat && !foundRecipient)}
+            >
               {isLoading ? "Creating..." : "Create Chat"}
             </Button>
           </div>

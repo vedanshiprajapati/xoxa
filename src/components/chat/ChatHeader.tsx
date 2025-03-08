@@ -58,7 +58,7 @@ export function AppHeader() {
 
 export function ChatHeader() {
   const { activeChat } = useChat();
-
+  console.log(activeChat);
   if (!activeChat) return null;
 
   return (
@@ -75,10 +75,7 @@ export function ChatHeader() {
           <div className="font-medium">{activeChat.name}</div>
           <div className="text-xs text-gray-500 flex items-center space-x-1">
             <div className="flex items-center">
-              <span>
-                Roshnag Airtel, Boshnag Jio, Bharat Kumar Ramesh, Periskope
-              </span>
-              <span className="ml-2">+3</span>
+              <span>{}</span>
             </div>
           </div>
         </div>

@@ -34,7 +34,7 @@ export function Avatar({
         <div
           className={`${sizeClass} rounded-full bg-gray-300 flex items-center justify-center text-white`}
         >
-          {name.charAt(0)}
+          {name.toUpperCase().charAt(0)}
         </div>
       )}
     </div>

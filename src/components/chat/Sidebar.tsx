@@ -14,8 +14,6 @@ import { Button } from "../ui/Button";
 import { NewChatModal } from "./NewChatModal";
 
 const Sidebar: React.FC = () => {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-
   return (
     <nav
       className="w-14 bg-white border-r border-gray-200 flex flex-col items-center py-4 space-y-6"
@@ -64,20 +62,7 @@ const Sidebar: React.FC = () => {
         <Settings size={22} />
       </a>
 
-      <Button
-        variant="icon"
-        onClick={() => setIsModalOpen(true)}
-        className="mt-auto"
-        aria-label="Create new chat"
-      >
-        <Plus size={22} />
-      </Button>
       <LogoutButton />
-
-      <NewChatModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-      />
     </nav>
   );
 };
