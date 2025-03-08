@@ -50,18 +50,15 @@ const Sidebar: React.FC = () => {
       >
         <Menu size={22} />
       </a>
-      <div className="mt-auto">
-        <a
-          href="#"
-          className="text-gray-600 hover:text-gray-800"
-          aria-label="Settings"
-        >
-          <Settings size={22} />
-        </a>
-      </div>
-      <div className="mt-auto">
-        <LogoutButton />
-      </div>
+
+      <a
+        href="#"
+        className="text-gray-600 hover:text-gray-800"
+        aria-label="Settings"
+      >
+        <Settings size={22} />
+      </a>
+      <LogoutButton />
     </nav>
   );
 };

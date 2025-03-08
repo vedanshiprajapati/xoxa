@@ -13,7 +13,11 @@ export function LogoutButton() {
   };
 
   return (
-    <Button variant="secondary" onClick={handleLogout}>
+    <Button
+      variant="secondary"
+      onClick={handleLogout}
+      className="cursor-pointer"
+    >
       <LogOut />
     </Button>
   );
