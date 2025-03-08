@@ -8,6 +8,7 @@ import {
   Menu,
   Settings,
 } from "lucide-react";
+import { LogoutButton } from "../auth/LogoutButton";
 
 const Sidebar: React.FC = () => {
   return (
@@ -57,6 +58,9 @@ const Sidebar: React.FC = () => {
         >
           <Settings size={22} />
         </a>
+      </div>
+      <div className="mt-auto">
+        <LogoutButton />
       </div>
     </nav>
   );

@@ -10,7 +10,7 @@ import {
   Image,
   Mic,
 } from "lucide-react";
-import { WhatsAppIcon } from "./WhatsappIcon";
+import { WhatsAppIcon } from "./WhatsAppIcon";
 
 interface MessageInputProps {
   onSendMessage: (content: string) => void;

@@ -17,7 +17,10 @@ export function useChats() {
           data: { user },
         } = await supabase.auth.getUser();
 
-        if (!user) throw new Error("Not authenticated");
+        if (!user) {
+          console.log("Not authenticated");
+          return;
+        }
 
         const { data: chatParticipants, error: participantsError } =
           await supabase
