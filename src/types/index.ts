@@ -27,7 +27,6 @@ export interface Message {
   chat_id: string;
   sender_id: string;
   content: string;
-  is_read: boolean;
   sent_by: string | null;
   created_at: string;
   sender_name?: string;

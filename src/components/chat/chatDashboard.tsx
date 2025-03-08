@@ -6,6 +6,7 @@ import { ChatHeader } from "./ChatHeader";
 import ChatMessages from "./ChatMessages";
 import MessageInput from "./MessageInput";
 import { useChat } from "@/contexts/chatContext";
+import { User } from "lucide-react";
 
 const ChatDashboard: React.FC = () => {
   // Use the global context instead of local state
@@ -23,7 +24,7 @@ const ChatDashboard: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-gray-100">
+    <div className="flex flex-col h-screen ">
       <header className="bg-white py-2 px-4 shadow-sm flex items-center justify-between border-b border-gray-300">
         <div className="flex items-center space-x-2">
           <div className="w-8 h-8 rounded-md bg-green-600 flex items-center justify-center text-white font-bold">
@@ -151,12 +152,8 @@ const ChatDashboard: React.FC = () => {
 
           {/* User avatar */}
           <div className="w-8 h-8 rounded-full bg-gray-200 overflow-hidden border border-gray-300">
-            {/* If user has avatar url */}
-            {/* <img src={currentUser?.avatar_url} alt={currentUser?.name} className="w-full h-full object-cover" /> */}
-
-            {/* Fallback if no avatar */}
             <div className="w-full h-full flex items-center justify-center bg-indigo-100 text-indigo-800 font-medium">
-              {/* Show initials: currentUser?.name.charAt(0) */}U
+              <User size={16} />
             </div>
           </div>
         </div>

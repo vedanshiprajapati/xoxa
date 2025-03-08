@@ -9,7 +9,6 @@ import {
   Image,
   Mic,
 } from "lucide-react";
-import { WhatsAppIcon } from "./WhatsAppIcon";
 
 interface MessageInputProps {
   onSendMessage: (content: string) => void;
@@ -33,11 +32,6 @@ const MessageInput: React.FC<MessageInputProps> = ({
   return (
     <footer className="bg-white p-3 border-t border-gray-200">
       <div className="flex items-center bg-white rounded-lg">
-        {/* <div className="px-2 flex space-x-2">
-          <WhatsAppIcon size={20} className="text-green-500" />
-          <span className="text-xs text-gray-500">Private Note</span>
-        </div> */}
-
         <form onSubmit={handleSubmit} className="flex-1 flex items-center">
           <input
             type="text"

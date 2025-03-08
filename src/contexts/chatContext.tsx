@@ -49,7 +49,12 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({
   const [filteredView, setFilteredView] = useState(true);
 
   // Fetch data using custom hooks
-  const { chats, isLoading: chatsLoading, error: chatsError } = useChats();
+  const {
+    chats,
+    setChats,
+    isLoading: chatsLoading,
+    error: chatsError,
+  } = useChats();
   const { users, isLoading: usersLoading, error: usersError } = useUsers();
   const { tags, isLoading: tagsLoading, error: tagsError } = useTags();
 
@@ -110,7 +115,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({
 
     fetchMessages();
 
-    // Subscribe to new messages
+    // Subscribe to new messages and chat updates
     const subscription = supabase
       .channel(`messages:${activeChat.id}`)
       .on(
@@ -121,8 +126,35 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({
           table: "messages",
           filter: `chat_id=eq.${activeChat.id}`,
         },
-        () => {
+        (payload) => {
           fetchMessages();
+          if (chats && setChats) {
+            const updatedChats = chats
+              .map((chat) =>
+                chat.id === activeChat.id
+                  ? {
+                      ...chat,
+                      updated_at: new Date().toISOString(),
+                      lastMessage: {
+                        ...chat.lastMessage,
+                        content: payload.new.content,
+                        created_at: new Date().toISOString(),
+                        id: chat.lastMessage?.id || "",
+                        chat_id: activeChat.id,
+                        sender_id: currentUser?.id || "",
+                        sent_by: currentUser?.email || "",
+                      },
+                    }
+                  : chat
+              )
+              .sort(
+                (a, b) =>
+                  new Date(b.updated_at).getTime() -
+                  new Date(a.updated_at).getTime()
+              );
+
+            setChats(updatedChats);
+          }
         }
       )
       .subscribe();
@@ -130,7 +162,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({
     return () => {
       subscription.unsubscribe();
     };
-  }, [activeChat]);
+  }, [activeChat, chats]);
 
   const sendMessage = async (content: string) => {
     if (!activeChat || !currentUser) return;
@@ -140,17 +172,30 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({
         chat_id: activeChat.id,
         sender_id: currentUser.id,
         content,
-        is_read: false,
         sent_by: currentUser.email,
       });
 
       if (error) throw error;
 
-      // Update chat's updated_at
-      await supabase
+      // Update chat's updated_at and refresh chat list
+      const { data: updatedChat } = await supabase
         .from("chats")
-        .update({ updated_at: new Date().toISOString() })
-        .eq("id", activeChat.id);
+        .update({
+          updated_at: new Date().toISOString(),
+          last_message: content,
+        })
+        .eq("id", activeChat.id)
+        .select()
+        .single();
+
+      if (updatedChat && chats) {
+        const updatedChats = [
+          updatedChat,
+          ...chats.filter((chat) => chat.id !== activeChat.id),
+        ];
+        // @ts-ignore
+        setChats(updatedChats);
+      }
     } catch (error) {
       console.error("Error sending message:", error);
     }
@@ -158,7 +203,11 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({
 
   const value = {
     currentUser,
-    chats,
+    chats:
+      chats?.sort(
+        (a, b) =>
+          new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+      ) || null,
     activeChat,
     setActiveChat,
     messages,
@@ -173,7 +222,7 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({
     },
     error: {
       chats: chatsError,
-      messages: null, // We handle messages errors internally
+      messages: null,
       users: usersError,
       tags: tagsError,
     },

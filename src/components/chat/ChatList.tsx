@@ -59,23 +59,21 @@ export function ChatList() {
   console.log(chats);
   console.log(activeChat, "active chat");
   // Filter chats based on search term and filtered view
-  const filteredChats =
-    chats &&
-    chats.filter((chat) => {
-      // Search filter
-      const matchesSearch = searchTerm
-        ? chat.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+  const filteredChats = React.useMemo(() => {
+    if (!chats) return null;
+
+    return chats.filter((chat) => {
+      const searchMatch = searchTerm
+        ? chat.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
           chat.lastMessage?.content
-            .toLowerCase()
+            ?.toLowerCase()
             .includes(searchTerm.toLowerCase()) ||
           chat.phone?.toLowerCase().includes(searchTerm.toLowerCase())
         : true;
 
-      // Filtered view (can be customized based on specific filter criteria)
-      const matchesFilter = filteredView ? true : true;
-
-      return matchesSearch && matchesFilter;
+      return searchMatch;
     });
+  }, [chats, searchTerm]);
 
   // Format timestamp to display just the time
   const formatTime = (dateString?: string) => {
@@ -111,8 +109,8 @@ export function ChatList() {
     );
   }
   return (
-    <div>
-      <div className="flex-1 overflow-y-auto divide-y divide-gray-100">
+    <div className="h-full relative">
+      <div className="flex-1 overflow-y-auto divide-y divide-gray-100 h-full">
         {filteredChats &&
           filteredChats.map((chat) => (
             <div
@@ -128,11 +126,6 @@ export function ChatList() {
                   name={chat.name || "Unknown Chat"}
                   size="lg"
                 />
-                {chat.unreadCount! > 0 && (
-                  <span className="absolute -top-1 -right-1 bg-red-500 text-xs text-white rounded-full px-2 py-1 shadow-sm">
-                    {chat.unreadCount}
-                  </span>
-                )}
               </div>
 
               <div className="ml-4 min-w-0 flex-1">
@@ -180,22 +173,25 @@ export function ChatList() {
               </div>
             </div>
           ))}
-        <div className="absolute bottom-12 right-3/4">
-          <Button
-            variant="icon"
-            onClick={() => setIsModalOpen(true)}
-            className="mt-auto bg-emerald-500 p-3 rounded-full"
-            aria-label="Create new chat"
-          >
-            <MessageCirclePlus size={22} className="text-white" />
-          </Button>
-        </div>
         {filteredChats?.length === 0 && (
           <div className="p-8 text-center text-gray-500">
             No chats found {searchTerm && `matching "${searchTerm}"`}
           </div>
         )}
       </div>
+
+      {/* Floating action button positioned in the bottom right corner */}
+      <div className="absolute bottom-4 right-4">
+        <Button
+          variant="icon"
+          onClick={() => setIsModalOpen(true)}
+          className="bg-green-600 p-3 rounded-full shadow-lg hover:bg-green-700 transition-colors"
+          aria-label="Create new chat"
+        >
+          <MessageCirclePlus size={20} className="text-white" />
+        </Button>
+      </div>
+
       <NewChatModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
@@ -206,7 +202,7 @@ export function ChatList() {
 
 const ShimmerChatItem = () => {
   return (
-    <div className="group relative flex items-center p-4 bg-gray-100 animate-pulse rounded-md">
+    <div className="group relative flex items-center p-4  animate-pulse rounded-md">
       <div className="relative flex-shrink-0 w-12 h-12 bg-gray-300 rounded-full"></div>
 
       <div className="ml-4 min-w-0 flex-1">

@@ -11,7 +11,6 @@ export function useChats() {
     async function fetchChats() {
       try {
         setIsLoading(true);
-        // Get all chats the current user is a participant in
         const {
           data: { user },
         } = await supabase.auth.getUser();
@@ -36,14 +35,13 @@ export function useChats() {
           return;
         }
 
-        // Get chat details
         const { data, error } = await supabase
           .from("chats")
           .select(
             `
             *,
             chat_participants!inner(user_id),
-            messages(id, content, sender_id, created_at, is_read)
+            messages(id, content, sender_id, created_at)
           `
           )
           .in("id", chatIds)
@@ -51,19 +49,14 @@ export function useChats() {
 
         if (error) throw error;
 
-        // Process chats to add last message and participants info
         const processedChats = await Promise.all(
           data.map(async (chat) => {
-            // Get chat tags
-            const { data: chatTags, error: tagsError } = await supabase
+            const { data: chatTags } = await supabase
               .from("chat_tags")
               .select("tags(name, color)")
               .eq("chat_id", chat.id);
 
-            if (tagsError) throw tagsError;
-
-            // Get last message
-            const { data: lastMessage, error: messageError } = await supabase
+            const { data: lastMessage } = await supabase
               .from("messages")
               .select("*, users!sender_id(name)")
               .eq("chat_id", chat.id)
@@ -71,31 +64,16 @@ export function useChats() {
               .limit(1)
               .single();
 
-            if (messageError && messageError.code !== "PGRST116")
-              throw messageError;
-
-            // Get unread count
-            const { data: unreadCount, error: unreadError } = await supabase
-              .from("messages")
-              .select("id", { count: "exact" })
-              .eq("chat_id", chat.id)
-              .eq("is_read", false)
-              .not("sender_id", "eq", user.id);
-
-            if (unreadError) throw unreadError;
-
             return {
               ...chat,
               tags: chatTags?.map((tag) => tag.tags) || [],
               lastMessage: lastMessage || null,
-              unreadCount: unreadCount?.length || 0,
             };
           })
         );
 
         setChats(processedChats);
       } catch (err) {
-        console.error("Error fetching chats:", err);
         setError(
           err instanceof Error ? err : new Error("Failed to fetch chats")
         );
@@ -106,35 +84,36 @@ export function useChats() {
 
     fetchChats();
 
-    // Subscribe to changes in chats
-    // In your useChats hook's useEffect
+    // Real-time updates for chats
     const channel = supabase
       .channel("chats")
       .on(
         "postgres_changes",
         {
-          event: "INSERT",
+          event: "*",
           schema: "public",
           table: "chats",
         },
         (payload) => {
-          // Get full chat details for the new chat
-          supabase
-            .from("chats")
-            .select(
-              `
-        *,
-        chat_participants!inner(user_id),
-        messages(id, content, sender_id, created_at, is_read)
-      `
-            )
-            .eq("id", payload.new.id)
-            .single()
-            .then(({ data }) => {
-              if (data) {
-                setChats((prev) => [data, ...(prev || [])]);
-              }
-            });
+          setChats((prev) => {
+            if (!prev) return null;
+
+            const newChat = payload.new as Chat;
+            const existing = prev.find((c) => c.id === newChat?.id);
+            if (!existing) return [newChat, ...prev];
+
+            return prev
+              .map((chat) =>
+                chat.id === newChat?.id
+                  ? { ...chat, ...newChat, lastMessage: chat.lastMessage }
+                  : chat
+              )
+              .sort(
+                (a, b) =>
+                  new Date(b.updated_at).getTime() -
+                  new Date(a.updated_at).getTime()
+              );
+          });
         }
       )
       .subscribe();
@@ -144,7 +123,7 @@ export function useChats() {
     };
   }, []);
 
-  return { chats, isLoading, error };
+  return { chats, isLoading, error, setChats };
 }
 
 export function useMessages(chatId: string | undefined) {

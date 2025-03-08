@@ -1,5 +1,4 @@
-"use client";
-import React, { useState } from "react";
+import React from "react";
 import {
   Home,
   MessageCircle,
@@ -7,11 +6,8 @@ import {
   Contact,
   Menu,
   Settings,
-  Plus,
 } from "lucide-react";
 import { LogoutButton } from "../auth/LogoutButton";
-import { Button } from "../ui/Button";
-import { NewChatModal } from "./NewChatModal";
 
 const Sidebar: React.FC = () => {
   return (
