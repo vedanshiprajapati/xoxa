@@ -18,6 +18,7 @@ interface ChatContextType {
   messages: Message[] | null;
   users: User[] | null;
   tags: Tag[] | null;
+  setChats: React.Dispatch<React.SetStateAction<Chat[] | null>>;
   sendMessage: (content: string) => Promise<void>;
   loading: {
     chats: boolean;
@@ -208,9 +209,11 @@ export const ChatProvider: React.FC<{ children: ReactNode }> = ({
         (a, b) =>
           new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
       ) || null,
+
     activeChat,
     setActiveChat,
     messages,
+    setChats,
     users,
     tags,
     sendMessage,

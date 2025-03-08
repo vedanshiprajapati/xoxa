@@ -58,7 +58,7 @@ export function AppHeader() {
 
 export function ChatHeader() {
   const { activeChat } = useChat();
-  console.log(activeChat);
+
   if (!activeChat) return null;
 
   return (

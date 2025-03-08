@@ -13,7 +13,7 @@ export function NewChatModal({
   onClose: () => void;
 }) {
   // Get context and hooks
-  const { setActiveChat } = useChat();
+  const { setActiveChat, currentUser, setChats, chats } = useChat();
   const { users } = useAllUsers();
   const { createChat, isLoading } = useCreateChat();
   // Chat type selection
@@ -29,7 +29,8 @@ export function NewChatModal({
     []
   );
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-
+  const participants =
+    currentUser && users?.filter((user) => user.id != currentUser.id);
   // Reset state when modal closes
   useEffect(() => {
     if (!isOpen) {
@@ -79,6 +80,15 @@ export function NewChatModal({
           groupName,
           selectedTags
         );
+        if (newChatData) {
+          // Update chat list immediately
+          if (chats && setChats) {
+            setChats([newChatData, ...chats]);
+          }
+
+          setActiveChat(newChatData);
+        }
+        onClose();
       } else {
         // Create direct message
         if (!foundRecipient) {
@@ -102,6 +112,7 @@ export function NewChatModal({
       onClose();
     } catch (error) {
       alert("Error creating chat");
+      console.log(error);
     }
   };
 
@@ -164,7 +175,7 @@ export function NewChatModal({
                   Add Participants
                 </label>
                 <div className="max-h-48 overflow-y-auto border rounded-md p-2">
-                  {users?.map((user) => (
+                  {participants?.map((user) => (
                     <label
                       key={user.id}
                       className="flex items-center space-x-2 p-2 hover:bg-gray-50 rounded"

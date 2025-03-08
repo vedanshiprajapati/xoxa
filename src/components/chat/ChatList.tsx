@@ -53,26 +53,29 @@ export function ChatListHeader() {
 }
 
 export function ChatList() {
-  const { chats, activeChat, setActiveChat, searchTerm, filteredView } =
-    useChat();
+  const { chats, activeChat, setActiveChat, searchTerm } = useChat();
   const [isModalOpen, setIsModalOpen] = useState(false);
-  console.log(chats);
-  console.log(activeChat, "active chat");
+
   // Filter chats based on search term and filtered view
   const filteredChats = React.useMemo(() => {
     if (!chats) return null;
 
-    return chats.filter((chat) => {
-      const searchMatch = searchTerm
-        ? chat.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          chat.lastMessage?.content
-            ?.toLowerCase()
-            .includes(searchTerm.toLowerCase()) ||
-          chat.phone?.toLowerCase().includes(searchTerm.toLowerCase())
-        : true;
+    return chats
+      .filter((chat) => {
+        const searchMatch = searchTerm
+          ? chat.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+            chat.lastMessage?.content
+              ?.toLowerCase()
+              .includes(searchTerm.toLowerCase()) ||
+            chat.phone?.toLowerCase().includes(searchTerm.toLowerCase())
+          : true;
 
-      return searchMatch;
-    });
+        return searchMatch;
+      })
+      .sort(
+        (a, b) =>
+          new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+      );
   }, [chats, searchTerm]);
 
   // Format timestamp to display just the time

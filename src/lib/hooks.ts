@@ -84,35 +84,42 @@ export function useChats() {
 
     fetchChats();
 
-    // Real-time updates for chats
     const channel = supabase
       .channel("chats")
       .on(
-        "postgres_changes",
+        "postgres_changes" as never,
         {
           event: "*",
           schema: "public",
           table: "chats",
         },
-        (payload) => {
+        (payload: { new: Chat; old: Chat; eventType: string }) => {
           setChats((prev) => {
             if (!prev) return null;
 
-            const newChat = payload.new as Chat;
-            const existing = prev.find((c) => c.id === newChat?.id);
-            if (!existing) return [newChat, ...prev];
+            const handleEvent = {
+              INSERT: () => [payload.new as Chat, ...prev],
+              UPDATE: () =>
+                prev.map((chat) =>
+                  chat.id === payload.new.id
+                    ? { ...chat, ...payload.new }
+                    : chat
+                ),
+              DELETE: () => prev.filter((chat) => chat.id !== payload.old.id),
+              default: () => prev,
+            };
 
-            return prev
-              .map((chat) =>
-                chat.id === newChat?.id
-                  ? { ...chat, ...newChat, lastMessage: chat.lastMessage }
-                  : chat
-              )
-              .sort(
-                (a, b) =>
-                  new Date(b.updated_at).getTime() -
-                  new Date(a.updated_at).getTime()
-              );
+            // Get updated chats array for the event type
+            const updatedChats =
+              handleEvent[payload.eventType as keyof typeof handleEvent]?.() ||
+              prev;
+
+            // Sort by updated_at descending
+            return updatedChats.sort(
+              (a, b) =>
+                new Date(b.updated_at).getTime() -
+                new Date(a.updated_at).getTime()
+            );
           });
         }
       )
