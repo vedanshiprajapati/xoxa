@@ -1,13 +1,12 @@
-// /components/chat/ChatDashboard.tsx
 "use client";
 import React, { useEffect, useState } from "react";
 import { useChats, useMessages, useUsers } from "@/lib/hooks";
 import { supabase, setupChatSubscription } from "@/lib/supabase";
 import { Chat, Message, User } from "@/types";
 import Sidebar from "./Sidebar";
-import { ChatList } from "./chatList";
-import { ChatHeader } from "./chatHeader";
-import ChatMessages from "./chatMessages";
+import { ChatList } from "./ChatList";
+import { ChatHeader } from "./ChatHeader";
+import ChatMessages from "./ChatMessages";
 import MessageInput from "./MessageInput";
 
 const ChatDashboard: React.FC = () => {

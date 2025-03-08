@@ -52,7 +52,7 @@ export function ChatListHeader() {
 export function ChatList() {
   const { chats, activeChat, setActiveChat, searchTerm, filteredView } =
     useChat();
-
+  console.log(chats);
   // Filter chats based on search term and filtered view
   const filteredChats =
     chats &&
@@ -98,75 +98,81 @@ export function ChatList() {
   };
 
   return (
-    <div className="flex-1 overflow-y-auto">
+    <div className="flex-1 overflow-y-auto divide-y divide-gray-100">
       {filteredChats &&
         filteredChats.map((chat) => (
           <div
             key={chat.id}
-            className={`p-2 hover:bg-gray-100 cursor-pointer border-b border-gray-100 ${
-              activeChat?.id === chat.id ? "bg-gray-100" : ""
+            className={`group relative flex items-center p-4 hover:bg-gray-50 cursor-pointer transition-colors ${
+              activeChat?.id === chat.id ? "bg-blue-50 hover:bg-blue-100" : ""
             }`}
             onClick={() => setActiveChat(chat)}
           >
-            <div className="flex">
-              <div className="mr-2 relative">
-                <Avatar src={chat.avatar_url} name={chat.name} size="md" />
-                {chat.unreadCount && chat.unreadCount > 0 && (
-                  <div className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-green-500 flex items-center justify-center">
-                    <span className="text-xs text-white">
-                      {chat.unreadCount}
-                    </span>
-                  </div>
+            <div className="relative flex-shrink-0">
+              <Avatar
+                src={chat.avatar_url}
+                name={chat.name || "Unknown Chat"}
+                size="lg"
+                className="ring-2 ring-white"
+              />
+              {chat.unreadCount! > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-xs text-white rounded-full px-2 py-1 shadow-sm">
+                  {chat.unreadCount}
+                </span>
+              )}
+            </div>
+
+            <div className="ml-4 min-w-0 flex-1">
+              <div className="flex items-center justify-between gap-2">
+                <h2 className="text-sm font-semibold text-gray-900 truncate">
+                  {chat.name || "Untitled Chat"}
+                </h2>
+                {chat.lastMessage?.created_at && (
+                  <time
+                    className="flex-shrink-0 text-xs text-gray-500"
+                    dateTime={chat.lastMessage.created_at}
+                  >
+                    {formatTime(chat.lastMessage.created_at)}
+                  </time>
                 )}
               </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex justify-between items-start">
-                  <div className="font-medium text-sm truncate">
-                    {chat.name}
-                  </div>
-                  <div className="text-xs text-gray-500 ml-1 whitespace-nowrap">
-                    {formatTime(chat.lastMessage?.created_at)}
-                  </div>
-                </div>
-                <div className="text-sm text-gray-600 truncate">
-                  {chat.lastMessage?.content}
-                </div>
-                <div className="flex items-center mt-1">
-                  <div className="text-xs text-gray-500">{chat.phone}</div>
-                  <div className="ml-auto flex">
-                    {chat.tags?.map((tag, index) => {
-                      // Map tag names to appropriate variants
-                      const getVariant = (tag: string) => {
-                        switch (tag.toLowerCase()) {
-                          case "demo":
-                            return "demo";
-                          case "internal":
-                            return "internal";
-                          case "signup":
-                            return "signup";
-                          case "content":
-                            return "content";
-                          case "dont send":
-                            return "dont-send";
-                          default:
-                            return "default";
-                        }
-                      };
 
-                      return (
-                        <Badge
-                          key={index}
-                          label={tag.name}
-                          variant={getVariant(tag.color)}
-                        />
-                      );
-                    })}
-                  </div>
-                </div>
+              <div className="mt-1 flex items-center justify-between gap-2">
+                <p className="text-sm text-gray-600 truncate">
+                  {chat.lastMessage?.content || (
+                    <span className="text-gray-400 italic">
+                      No messages yet
+                    </span>
+                  )}
+                </p>
+
+                {chat.phone && (
+                  <span className="flex-shrink-0 text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                    {chat.phone}
+                  </span>
+                )}
               </div>
+
+              {chat.tags && chat.tags.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {chat.tags.map((tag, index) => (
+                    <Badge
+                      key={index}
+                      label={tag.name}
+                      className="text-xs px-2 py-0.5 rounded-full"
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         ))}
+
+      {filteredChats?.length === 0 && (
+        <div className="p-8 text-center text-gray-500">
+          No chats found {searchTerm && `matching "${searchTerm}"`}
+        </div>
+      )}
     </div>
   );
 }

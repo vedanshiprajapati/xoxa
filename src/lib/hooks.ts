@@ -1,4 +1,3 @@
-// /lib/hooks.ts
 import { useState, useEffect } from "react";
 import { supabase } from "./supabase";
 import { Chat, Message, User, Tag } from "@/types";
@@ -108,23 +107,40 @@ export function useChats() {
     fetchChats();
 
     // Subscribe to changes in chats
-    const chatSubscription = supabase
-      .channel("public:chats")
+    // In your useChats hook's useEffect
+    const channel = supabase
+      .channel("chats")
       .on(
         "postgres_changes",
         {
-          event: "*",
+          event: "INSERT",
           schema: "public",
           table: "chats",
         },
-        () => {
-          fetchChats();
+        (payload) => {
+          // Get full chat details for the new chat
+          supabase
+            .from("chats")
+            .select(
+              `
+        *,
+        chat_participants!inner(user_id),
+        messages(id, content, sender_id, created_at, is_read)
+      `
+            )
+            .eq("id", payload.new.id)
+            .single()
+            .then(({ data }) => {
+              if (data) {
+                setChats((prev) => [data, ...(prev || [])]);
+              }
+            });
         }
       )
       .subscribe();
 
     return () => {
-      chatSubscription.unsubscribe();
+      channel.unsubscribe();
     };
   }, []);
 
@@ -231,7 +247,7 @@ export function useUsers() {
 
     fetchUsers();
   }, []);
-
+  console.log(users);
   return { users, isLoading, error };
 }
 
@@ -263,4 +279,46 @@ export function useTags() {
   }, []);
 
   return { tags, isLoading, error };
+}
+
+export function useCreateChat() {
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+
+  const createChat = async (
+    participants: string[],
+    name?: string,
+    tags: string[] = []
+  ) => {
+    setIsLoading(true);
+    try {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error("Not authenticated");
+
+      // Create chat with transaction
+      const { data: chat, error: chatError } = await supabase.rpc(
+        "create_chat_with_participants",
+        {
+          chat_name: name,
+          participant_ids: [...participants, user.id],
+          tag_ids: tags,
+          is_group: participants.length > 1,
+        }
+      );
+
+      if (chatError) throw chatError;
+      return chat;
+    } catch (err) {
+      setError(err instanceof Error ? err : new Error("Chat creation failed"));
+      throw err;
+    } finally {
+      setIsLoading(false);
+      // For React Query users:
+      // queryClient.invalidateQueries(['chats']);
+    }
+  };
+
+  return { createChat, isLoading, error };
 }
