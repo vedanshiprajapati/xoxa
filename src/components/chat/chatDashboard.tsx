@@ -24,8 +24,8 @@ const ChatDashboard: React.FC = () => {
   }
 
   return (
-    <div className="flex flex-col h-screen ">
-      <header className="bg-white py-2 px-4 shadow-sm flex items-center justify-between border-b border-gray-300">
+    <div className="flex flex-col h-screen overflow-hidden">
+      <header className="bg-white py-2 px-4 shadow-sm flex items-center justify-between border-b border-gray-300 flex-shrink-0">
         <div className="flex items-center space-x-2">
           <div className="w-8 h-8 rounded-md bg-green-600 flex items-center justify-center text-white font-bold">
             P<span className="text-xs">12</span>
@@ -160,32 +160,47 @@ const ChatDashboard: React.FC = () => {
       </header>
 
       <div className="flex flex-1 overflow-hidden">
-        <Sidebar />
-        <div className="w-1/4">
-          <ChatListHeader />
+        {/* Sidebar with fixed width */}
+        <div className="flex-shrink-0">
+          <Sidebar />
+        </div>
+
+        {/* Chat list with fixed width and contained scrolling */}
+        <div className="w-1/4 flex-shrink-0 border-r border-gray-200 flex flex-col h-full">
+          {/* <ChatListHeader /> */}
           <ChatList />
         </div>
 
-        <div className="flex-1 flex flex-col bg-gray-50">
+        {/* Chat content area with proper overflow handling */}
+        <div className="flex-1 flex flex-col bg-gray-50 min-w-0">
           {activeChat ? (
             <>
-              <ChatHeader />
+              {/* Fixed chat header */}
+              <div className="flex-shrink-0">
+                <ChatHeader />
+              </div>
 
+              {/* Scrollable messages area */}
               {loading.messages ? (
                 <div className="flex-1 flex items-center justify-center text-gray-500">
                   Loading messages...
                 </div>
               ) : (
-                <ChatMessages
-                  messages={messages || []}
-                  currentUserId={currentUser?.id || ""}
-                />
+                <div className="flex-1 overflow-y-auto">
+                  <ChatMessages
+                    messages={messages || []}
+                    currentUserId={currentUser?.id || ""}
+                  />
+                </div>
               )}
 
-              <MessageInput
-                onSendMessage={sendMessage}
-                disabled={!activeChat || !currentUser}
-              />
+              {/* Fixed message input at bottom */}
+              <div className="flex-shrink-0">
+                <MessageInput
+                  onSendMessage={sendMessage}
+                  disabled={!activeChat || !currentUser}
+                />
+              </div>
             </>
           ) : (
             <div className="flex-1 flex items-center justify-center text-gray-500">

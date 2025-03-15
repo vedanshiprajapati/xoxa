@@ -7,7 +7,7 @@ import { useChat } from "@/contexts/chatContext";
 import { NewChatModal } from "./NewChatModal";
 import { Button } from "../ui/Button";
 
-export function ChatListHeader() {
+export const ChatListHeader = () => {
   const { searchTerm, setSearchTerm, filteredView, setFilteredView } =
     useChat();
 
@@ -50,12 +50,11 @@ export function ChatListHeader() {
       </div>
     </div>
   );
-}
+};
 
 export function ChatList() {
   const { chats, activeChat, setActiveChat, searchTerm } = useChat();
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const chatListRef = useRef(null);
 
   // Filter chats based on search term
   const filteredChats = useMemo(() => {
@@ -105,7 +104,7 @@ export function ChatList() {
   // Show loading shimmer if chats are not yet loaded
   if (!chats) {
     return (
-      <div className="h-full overflow-hidden">
+      <div className="h-full">
         {[1, 2, 3].map((item) => (
           <ShimmerChatItem key={item} />
         ))}
@@ -114,78 +113,76 @@ export function ChatList() {
   }
 
   return (
-    <div className="flex flex-col h-screen relative">
-      {/* Chat list with proper overflow handling */}
-      <div
-        ref={chatListRef}
-        className="flex-1 overflow-y-auto overscroll-contain scroll-smooth"
-        style={{ scrollbarWidth: "thin" }}
-      >
-        <div className="divide-y divide-gray-100">
+    <div className="flex flex-col h-full relative">
+      {/* Scrollable chat list container */}
+      <div className="flex-1 overflow-hidden flex flex-col">
+        <div className="overflow-y-auto scrollbar-thin flex-1">
           {filteredChats.length > 0 ? (
-            filteredChats.map((chat) => (
-              <div
-                key={chat.id}
-                className={`group relative flex items-center p-4 hover:bg-gray-50 cursor-pointer transition-colors ${
-                  activeChat?.id === chat.id
-                    ? "bg-blue-50 hover:bg-blue-100"
-                    : ""
-                }`}
-                onClick={() => setActiveChat(chat)}
-              >
-                <div className="relative flex-shrink-0">
-                  <Avatar
-                    src={chat.avatar_url}
-                    name={chat.name || "Unknown Chat"}
-                    size="lg"
-                  />
-                </div>
-
-                <div className="ml-4 min-w-0 flex-1">
-                  <div className="flex items-center justify-between gap-2">
-                    <h2 className="text-sm font-semibold text-gray-900 truncate">
-                      {chat.name || "Untitled Chat"}
-                    </h2>
-                    {chat.lastMessage?.created_at && (
-                      <time
-                        className="flex-shrink-0 text-xs text-gray-500"
-                        dateTime={chat.lastMessage.created_at}
-                      >
-                        {formatTime(chat.lastMessage.created_at)}
-                      </time>
-                    )}
+            <div className="divide-y divide-gray-100">
+              {filteredChats.map((chat) => (
+                <div
+                  key={chat.id}
+                  className={`group relative flex items-center p-4 hover:bg-gray-50 cursor-pointer transition-colors ${
+                    activeChat?.id === chat.id
+                      ? "bg-blue-50 hover:bg-blue-100"
+                      : ""
+                  }`}
+                  onClick={() => setActiveChat(chat)}
+                >
+                  <div className="relative flex-shrink-0">
+                    <Avatar
+                      src={chat.avatar_url}
+                      name={chat.name || "Unknown Chat"}
+                      size="lg"
+                    />
                   </div>
 
-                  <div className="mt-1 flex items-center justify-between gap-2">
-                    <p className="text-sm text-gray-600 truncate">
-                      {chat.lastMessage?.content || (
-                        <span className="text-gray-400 italic">
-                          No messages yet
+                  <div className="ml-4 min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <h2 className="text-sm font-semibold text-gray-900 truncate">
+                        {chat.name || "Untitled Chat"}
+                      </h2>
+                      {chat.lastMessage?.created_at && (
+                        <time
+                          className="flex-shrink-0 text-xs text-gray-500"
+                          dateTime={chat.lastMessage.created_at}
+                        >
+                          {formatTime(chat.lastMessage.created_at)}
+                        </time>
+                      )}
+                    </div>
+
+                    <div className="mt-1 flex items-center justify-between gap-2">
+                      <p className="text-sm text-gray-600 truncate">
+                        {chat.lastMessage?.content || (
+                          <span className="text-gray-400 italic">
+                            No messages yet
+                          </span>
+                        )}
+                      </p>
+
+                      {chat.phone && (
+                        <span className="flex-shrink-0 text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                          {chat.phone}
                         </span>
                       )}
-                    </p>
+                    </div>
 
-                    {chat.phone && (
-                      <span className="flex-shrink-0 text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
-                        {chat.phone}
-                      </span>
+                    {chat.tags && chat.tags.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {chat.tags.map((tag, index) => (
+                          <Badge
+                            key={index}
+                            label={tag.name}
+                            className="text-xs px-2 py-0.5 rounded-full"
+                          />
+                        ))}
+                      </div>
                     )}
                   </div>
-
-                  {chat.tags && chat.tags.length > 0 && (
-                    <div className="mt-2 flex flex-wrap gap-2">
-                      {chat.tags.map((tag, index) => (
-                        <Badge
-                          key={index}
-                          label={tag.name}
-                          className="text-xs px-2 py-0.5 rounded-full"
-                        />
-                      ))}
-                    </div>
-                  )}
                 </div>
-              </div>
-            ))
+              ))}
+            </div>
           ) : (
             <div className="p-8 text-center text-gray-500">
               No chats found {searchTerm && `matching "${searchTerm}"`}
@@ -194,7 +191,7 @@ export function ChatList() {
         </div>
       </div>
 
-      {/* Floating action button - positioned with fixed distance from bottom */}
+      {/* Floating action button - fixed position relative to container */}
       <div className="absolute bottom-4 right-4 z-10">
         <Button
           variant="icon"
@@ -216,7 +213,7 @@ export function ChatList() {
 
 const ShimmerChatItem = () => {
   return (
-    <div className="group relative flex items-center p-4  animate-pulse rounded-md">
+    <div className="group relative flex items-center p-4 animate-pulse rounded-md">
       <div className="relative flex-shrink-0 w-12 h-12 bg-gray-300 rounded-full"></div>
 
       <div className="ml-4 min-w-0 flex-1">
