@@ -20,6 +20,7 @@ export function useChats() {
           return;
         }
 
+        // Fetch chat IDs where the user is a participant
         const { data: chatParticipants, error: participantsError } =
           await supabase
             .from("chat_participants")
@@ -35,13 +36,17 @@ export function useChats() {
           return;
         }
 
+        // Fetch chats with their tags and last message
         const { data, error } = await supabase
           .from("chats")
           .select(
             `
             *,
             chat_participants!inner(user_id),
-            messages(id, content, sender_id, created_at)
+            messages(id, content, sender_id, created_at),
+            chat_tags(
+              tag:tags(*)
+            )
           `
           )
           .in("id", chatIds)
@@ -49,28 +54,23 @@ export function useChats() {
 
         if (error) throw error;
 
-        const processedChats = await Promise.all(
-          data.map(async (chat) => {
-            const { data: chatTags } = await supabase
-              .from("chat_tags")
-              .select("tags(name, color)")
-              .eq("chat_id", chat.id);
+        // Process chats to include tags and last message
+        const processedChats = data.map((chat) => {
+          // Extract tags from chat_tags join
+          const tags = chat.chat_tags?.map((ct: any) => ct.tag) || [];
 
-            const { data: lastMessage } = await supabase
-              .from("messages")
-              .select("*, users!sender_id(name)")
-              .eq("chat_id", chat.id)
-              .order("created_at", { ascending: false })
-              .limit(1)
-              .single();
+          // Find the last message
+          const lastMessage =
+            chat.messages?.length > 0
+              ? chat.messages[0] // Already sorted by created_at descending
+              : null;
 
-            return {
-              ...chat,
-              tags: chatTags?.map((tag) => tag.tags) || [],
-              lastMessage: lastMessage || null,
-            };
-          })
-        );
+          return {
+            ...chat,
+            tags,
+            lastMessage,
+          };
+        });
 
         setChats(processedChats);
       } catch (err) {
@@ -84,6 +84,7 @@ export function useChats() {
 
     fetchChats();
 
+    // Real-time subscription for chat updates
     const channel = supabase
       .channel("chats")
       .on(
@@ -109,12 +110,10 @@ export function useChats() {
               default: () => prev,
             };
 
-            // Get updated chats array for the event type
             const updatedChats =
               handleEvent[payload.eventType as keyof typeof handleEvent]?.() ||
               prev;
 
-            // Sort by updated_at descending
             return updatedChats.sort(
               (a, b) =>
                 new Date(b.updated_at).getTime() -
@@ -131,80 +130,6 @@ export function useChats() {
   }, []);
 
   return { chats, isLoading, error, setChats };
-}
-
-export function useMessages(chatId: string | undefined) {
-  const [messages, setMessages] = useState<Message[] | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<Error | null>(null);
-
-  useEffect(() => {
-    if (!chatId) {
-      setMessages(null);
-      setIsLoading(false);
-      return;
-    }
-
-    async function fetchMessages() {
-      try {
-        setIsLoading(true);
-
-        // Fetch messages for the chat
-        const { data, error } = await supabase
-          .from("messages")
-          .select(
-            `
-            *,
-            users!sender_id(name, avatar_url)
-          `
-          )
-          .eq("chat_id", chatId)
-          .order("created_at", { ascending: true });
-
-        if (error) throw error;
-
-        // Process messages to add sender info
-        const processedMessages = data.map((msg) => ({
-          ...msg,
-          sender_name: msg.users?.name || "Unknown",
-        }));
-
-        setMessages(processedMessages);
-      } catch (err) {
-        console.error("Error fetching messages:", err);
-        setError(
-          err instanceof Error ? err : new Error("Failed to fetch messages")
-        );
-      } finally {
-        setIsLoading(false);
-      }
-    }
-
-    fetchMessages();
-
-    // Subscribe to new messages for this chat
-    const messagesSubscription = supabase
-      .channel(`messages:${chatId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "messages",
-          filter: `chat_id=eq.${chatId}`,
-        },
-        (payload) => {
-          fetchMessages(); // Refresh all messages
-        }
-      )
-      .subscribe();
-
-    return () => {
-      messagesSubscription.unsubscribe();
-    };
-  }, [chatId]);
-
-  return { messages, isLoading, error };
 }
 
 export function useUsers() {
@@ -299,7 +224,7 @@ export function useTags() {
     fetchTags();
   }, []);
 
-  return { tags, isLoading, error };
+  return { tags, isLoading, error, setTags };
 }
 
 export function useCreateChat() {
@@ -309,7 +234,7 @@ export function useCreateChat() {
   const createChat = async (
     participants: string[],
     name?: string,
-    tags: string[] = []
+    tags: Tag[] = []
   ) => {
     setIsLoading(true);
     try {
@@ -324,7 +249,7 @@ export function useCreateChat() {
         {
           chat_name: name,
           participant_ids: [...participants, user.id],
-          tag_ids: tags,
+          tag_ids: tags.map((tag) => tag.id),
           is_group: participants.length > 1,
         }
       );

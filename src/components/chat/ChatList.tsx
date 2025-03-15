@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useMemo, useRef, useState } from "react";
 import { Search, Filter, ListFilter, MessageCirclePlus } from "lucide-react";
 import { Avatar } from "@/components/ui/Avatar";
 import { Badge } from "@/components/ui/Badge";
@@ -55,22 +55,22 @@ export function ChatListHeader() {
 export function ChatList() {
   const { chats, activeChat, setActiveChat, searchTerm } = useChat();
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const chatListRef = useRef(null);
 
-  // Filter chats based on search term and filtered view
-  const filteredChats = React.useMemo(() => {
-    if (!chats) return null;
+  // Filter chats based on search term
+  const filteredChats = useMemo(() => {
+    if (!chats) return [];
 
     return chats
       .filter((chat) => {
-        const searchMatch = searchTerm
-          ? chat.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            chat.lastMessage?.content
-              ?.toLowerCase()
-              .includes(searchTerm.toLowerCase()) ||
-            chat.phone?.toLowerCase().includes(searchTerm.toLowerCase())
-          : true;
+        if (!searchTerm) return true;
 
-        return searchMatch;
+        const term = searchTerm.toLowerCase();
+        return (
+          chat.name?.toLowerCase().includes(term) ||
+          chat.lastMessage?.content?.toLowerCase().includes(term) ||
+          chat.phone?.toLowerCase().includes(term)
+        );
       })
       .sort(
         (a, b) =>
@@ -78,10 +78,9 @@ export function ChatList() {
       );
   }, [chats, searchTerm]);
 
-  // Format timestamp to display just the time
-  const formatTime = (dateString?: string) => {
+  // Format timestamp to display appropriate time format
+  const formatTime = (dateString: string) => {
     if (!dateString) return "";
-    if (dateString === "Yesterday") return "Yesterday";
 
     const date = new Date(dateString);
     const now = new Date();
@@ -102,89 +101,101 @@ export function ChatList() {
       });
     }
   };
+
+  // Show loading shimmer if chats are not yet loaded
   if (!chats) {
     return (
-      <div>
+      <div className="h-full overflow-hidden">
         {[1, 2, 3].map((item) => (
           <ShimmerChatItem key={item} />
         ))}
       </div>
     );
   }
-  return (
-    <div className="h-full relative">
-      <div className="flex-1 overflow-y-auto divide-y divide-gray-100 h-full">
-        {filteredChats &&
-          filteredChats.map((chat) => (
-            <div
-              key={chat.id}
-              className={`group relative flex items-center p-4 hover:bg-gray-50 cursor-pointer transition-colors ${
-                activeChat?.id === chat.id ? "bg-blue-50 hover:bg-blue-100" : ""
-              }`}
-              onClick={() => setActiveChat(chat)}
-            >
-              <div className="relative flex-shrink-0">
-                <Avatar
-                  src={chat.avatar_url}
-                  name={chat.name || "Unknown Chat"}
-                  size="lg"
-                />
-              </div>
 
-              <div className="ml-4 min-w-0 flex-1">
-                <div className="flex items-center justify-between gap-2">
-                  <h2 className="text-sm font-semibold text-gray-900 truncate">
-                    {chat.name || "Untitled Chat"}
-                  </h2>
-                  {chat.lastMessage?.created_at && (
-                    <time
-                      className="flex-shrink-0 text-xs text-gray-500"
-                      dateTime={chat.lastMessage.created_at}
-                    >
-                      {formatTime(chat.lastMessage.created_at)}
-                    </time>
-                  )}
+  return (
+    <div className="flex flex-col h-screen relative">
+      {/* Chat list with proper overflow handling */}
+      <div
+        ref={chatListRef}
+        className="flex-1 overflow-y-auto overscroll-contain scroll-smooth"
+        style={{ scrollbarWidth: "thin" }}
+      >
+        <div className="divide-y divide-gray-100">
+          {filteredChats.length > 0 ? (
+            filteredChats.map((chat) => (
+              <div
+                key={chat.id}
+                className={`group relative flex items-center p-4 hover:bg-gray-50 cursor-pointer transition-colors ${
+                  activeChat?.id === chat.id
+                    ? "bg-blue-50 hover:bg-blue-100"
+                    : ""
+                }`}
+                onClick={() => setActiveChat(chat)}
+              >
+                <div className="relative flex-shrink-0">
+                  <Avatar
+                    src={chat.avatar_url}
+                    name={chat.name || "Unknown Chat"}
+                    size="lg"
+                  />
                 </div>
 
-                <div className="mt-1 flex items-center justify-between gap-2">
-                  <p className="text-sm text-gray-600 truncate">
-                    {chat.lastMessage?.content || (
-                      <span className="text-gray-400 italic">
-                        No messages yet
+                <div className="ml-4 min-w-0 flex-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <h2 className="text-sm font-semibold text-gray-900 truncate">
+                      {chat.name || "Untitled Chat"}
+                    </h2>
+                    {chat.lastMessage?.created_at && (
+                      <time
+                        className="flex-shrink-0 text-xs text-gray-500"
+                        dateTime={chat.lastMessage.created_at}
+                      >
+                        {formatTime(chat.lastMessage.created_at)}
+                      </time>
+                    )}
+                  </div>
+
+                  <div className="mt-1 flex items-center justify-between gap-2">
+                    <p className="text-sm text-gray-600 truncate">
+                      {chat.lastMessage?.content || (
+                        <span className="text-gray-400 italic">
+                          No messages yet
+                        </span>
+                      )}
+                    </p>
+
+                    {chat.phone && (
+                      <span className="flex-shrink-0 text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                        {chat.phone}
                       </span>
                     )}
-                  </p>
+                  </div>
 
-                  {chat.phone && (
-                    <span className="flex-shrink-0 text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
-                      {chat.phone}
-                    </span>
+                  {chat.tags && chat.tags.length > 0 && (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {chat.tags.map((tag, index) => (
+                        <Badge
+                          key={index}
+                          label={tag.name}
+                          className="text-xs px-2 py-0.5 rounded-full"
+                        />
+                      ))}
+                    </div>
                   )}
                 </div>
-
-                {chat.tags && chat.tags.length > 0 && (
-                  <div className="mt-2 flex flex-wrap gap-2">
-                    {chat.tags.map((tag, index) => (
-                      <Badge
-                        key={index}
-                        label={tag.name}
-                        className="text-xs px-2 py-0.5 rounded-full"
-                      />
-                    ))}
-                  </div>
-                )}
               </div>
+            ))
+          ) : (
+            <div className="p-8 text-center text-gray-500">
+              No chats found {searchTerm && `matching "${searchTerm}"`}
             </div>
-          ))}
-        {filteredChats?.length === 0 && (
-          <div className="p-8 text-center text-gray-500">
-            No chats found {searchTerm && `matching "${searchTerm}"`}
-          </div>
-        )}
+          )}
+        </div>
       </div>
 
-      {/* Floating action button positioned in the bottom right corner */}
-      <div className="absolute bottom-4 right-4">
+      {/* Floating action button - positioned with fixed distance from bottom */}
+      <div className="absolute bottom-4 right-4 z-10">
         <Button
           variant="icon"
           onClick={() => setIsModalOpen(true)}

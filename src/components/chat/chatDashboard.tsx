@@ -1,7 +1,7 @@
 "use client";
 import React from "react";
 import Sidebar from "./Sidebar";
-import { ChatList } from "./ChatList";
+import { ChatList, ChatListHeader } from "./ChatList";
 import { ChatHeader } from "./ChatHeader";
 import ChatMessages from "./ChatMessages";
 import MessageInput from "./MessageInput";
@@ -162,6 +162,7 @@ const ChatDashboard: React.FC = () => {
       <div className="flex flex-1 overflow-hidden">
         <Sidebar />
         <div className="w-1/4">
+          <ChatListHeader />
           <ChatList />
         </div>
 

@@ -3,7 +3,8 @@ import { useState, useEffect } from "react";
 import { useChat } from "@/contexts/chatContext"; // Assuming your context is here
 import { useCreateChat, useAllUsers } from "@/lib/hooks";
 import { Button } from "@/components/ui/Button";
-import { User } from "@/types";
+import { Tag, User } from "@/types";
+import ChatTagDropdown from "./ChatTags";
 
 export function NewChatModal({
   isOpen,
@@ -28,7 +29,7 @@ export function NewChatModal({
   const [selectedParticipants, setSelectedParticipants] = useState<string[]>(
     []
   );
-  const [selectedTags, setSelectedTags] = useState<string[]>([]);
+  const [selectedTags, setSelectedTags] = useState<Tag[]>([]);
   const participants =
     currentUser && users?.filter((user) => user.id != currentUser.id);
   // Reset state when modal closes
@@ -82,9 +83,9 @@ export function NewChatModal({
         );
         if (newChatData) {
           // Update chat list immediately
-          if (chats && setChats) {
-            setChats([newChatData, ...chats]);
-          }
+          // if (chats && setChats) {
+          //   setChats([newChatData, ...chats]);
+          // }
 
           setActiveChat(newChatData);
         }
@@ -152,7 +153,7 @@ export function NewChatModal({
           </div>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form className="space-y-4">
           {isGroupChat ? (
             // Group Chat Form
             <>
@@ -206,7 +207,10 @@ export function NewChatModal({
                   ))}
                 </div>
               </div>
-
+              <ChatTagDropdown
+                selectedTags={selectedTags}
+                setSelectedTags={setSelectedTags}
+              />
               {/* <div>
               <label className="block text-sm font-medium mb-1">Add Tags</label>
             <div className="flex flex-wrap gap-2">
@@ -270,6 +274,12 @@ export function NewChatModal({
                   </p>
                 </div>
               )}
+              <div className="py-2">
+                <ChatTagDropdown
+                  selectedTags={selectedTags}
+                  setSelectedTags={setSelectedTags}
+                />
+              </div>
             </div>
           )}
 
@@ -283,8 +293,8 @@ export function NewChatModal({
               Cancel
             </Button>
             <Button
-              type="submit"
               disabled={isLoading || (!isGroupChat && !foundRecipient)}
+              onClick={handleSubmit}
             >
               {isLoading ? "Creating..." : "Create Chat"}
             </Button>
